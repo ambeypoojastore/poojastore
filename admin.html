@@ -199,7 +199,9 @@ select.status-sel:focus{outline:none;border-color:var(--saf);}
   <div class="nav-right">
     <a href="index.html" target="_blank">🏪 View Store ↗</a>
     <span style="color:rgba(255,255,255,0.3)">|</span>
-    <span style="color:rgba(255,255,255,0.65);font-size:0.8rem;">👤 Pooja (Admin)</span>
+    <span style="color:rgba(255,255,255,0.65);font-size:0.8rem;">👤 Pooja</span>
+    <span style="color:rgba(255,255,255,0.3)">|</span>
+    <a href="#" onclick="adminLogout()" style="color:rgba(255,100,100,0.75);font-size:0.8rem;text-decoration:none;">🔓 Logout</a>
   </div>
 </nav>
 
@@ -497,7 +499,7 @@ function doGet(e) {
     <div class="mh"><h3>🎉 Create Festival Offer</h3><button onclick="document.getElementById('offer-modal').classList.remove('open')">✕</button></div>
     <div class="mb">
       <div class="fg-row">
-        <div class="fg"><label>Offer Name *</label><input id="om-name" placeholder="e.g. Navratri Mahotsav 2026"/></div>
+        <div class="fg"><label>Offer Name *</label><input id="om-name" placeholder="e.g. Navratri Mahotsav 2025"/></div>
         <div class="fg"><label>Festival</label>
           <select id="om-festival">
             <option>Navratri</option><option>Diwali</option><option>Janmashtami</option>
@@ -538,6 +540,14 @@ function doGet(e) {
 
 <div class="toast" id="toast"></div>
 
+<script>
+(function(){
+  var sess = JSON.parse(sessionStorage.getItem('aps_admin_session') || 'null');
+  if (!sess || sess.exp < Date.now()) {
+    window.location.replace('login.html');
+  }
+})();
+</script>
 <script src="db.js"></script>
 <script>
 // ── STATE ──
@@ -939,6 +949,14 @@ function showToast(msg){
 
 // ── INIT ──
 renderDashboard();
+
+function adminLogout() {
+  if(confirm('Logout from Admin Panel?')) {
+    sessionStorage.removeItem('aps_admin_session');
+    window.location.replace('login.html');
+  }
+}
+
 </script>
 </body>
 </html>
