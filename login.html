@@ -309,7 +309,7 @@ body{
   <!-- ── SCREEN 3: FORGOT PIN ── -->
   <div class="screen" id="screen-forgot">
     <div class="forgot-wrap">
-      <p>Enter the secret recovery word to reset your PIN. (Default: <strong style="color:rgba(212,168,39,0.8)">ambey</strong>)</p>
+      <p>Enter the secret recovery word given to you by your store administrator to reset your PIN.</p>
       <input class="secret-input" type="password" id="secret-input" placeholder="Recovery word" autocomplete="off"/>
       <button class="btn-full" onclick="verifySecret()">Verify & Reset PIN</button>
     </div>
@@ -340,7 +340,7 @@ body{
 const STORAGE_KEY   = 'aps_admin_pin';
 const SESSION_KEY   = 'aps_admin_session';
 const SESSION_HOURS = 8;
-const SECRET_WORD   = 'ambey'; // recovery passphrase
+const SECRET_WORD   = 'kushu';
 
 let loginBuf  = '';
 let setupBuf  = '';
@@ -352,7 +352,7 @@ let lockUntil = 0;
 // ── INIT ──
 function init() {
   // Check existing session
-  const sess = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+  const sess = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
   if (sess && sess.exp > Date.now()) {
     showScreen('go-screen');
     document.getElementById('session-info').textContent =
@@ -440,7 +440,7 @@ function submitPin(mode) {
       flashDots('login','success');
       // Create session
       const exp = Date.now() + SESSION_HOURS * 3600000;
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({exp, user:'Pooja'}));
+      localStorage.setItem(SESSION_KEY, JSON.stringify({exp, user:'Pooja'}));
       setTimeout(() => {
         showScreen('go-screen');
         document.getElementById('session-info').textContent =
