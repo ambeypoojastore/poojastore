@@ -184,11 +184,81 @@ select.status-sel:focus{outline:none;border-color:var(--saf);}
 .toggle-switch input:checked::after{left:18px;}
 .toggle-label{font-size:0.8rem;}
 
+/* ═══ MOBILE STYLES ═══ */
 @media(max-width:700px){
-  .layout{grid-template-columns:1fr;}
-  .sidebar{display:none;}
   .fg-row,.fg-row3{grid-template-columns:1fr;}
   .settings-grid{grid-template-columns:1fr;}
+  .layout{grid-template-columns:1fr;min-height:unset;}
+  .sidebar{display:none !important;}
+  .main{padding:1rem 0.9rem 80px;max-height:unset;overflow-y:auto;}
+  nav{height:50px;padding:0 0.9rem;}
+  .nav-brand{font-size:0.82rem;}
+  .nav-right a{font-size:0.7rem;}
+  .nav-right{gap:0.5rem;}
+  .pg-title{font-size:1rem;margin-bottom:0.9rem;}
+  .metrics{grid-template-columns:1fr 1fr;gap:0.6rem;}
+  .mc-val{font-size:1.2rem;}
+  .mc{padding:0.75rem;}
+  th,td{padding:0.45rem 0.55rem;font-size:0.76rem;}
+  .card-body{padding:0 !important;}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+}
+
+/* ═══ MOBILE BOTTOM NAV ═══ */
+.mobile-nav{display:none;}
+@media(max-width:700px){
+  .mobile-nav{
+    display:flex !important;
+    position:fixed;bottom:0;left:0;right:0;z-index:500;
+    background:#fff;border-top:1px solid var(--border);
+    box-shadow:0 -2px 16px rgba(0,0,0,0.12);
+    height:62px;padding:0;
+  }
+  .mn-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:2px;
+    cursor:pointer;padding:5px 2px;
+    border:none;background:transparent;
+    color:var(--muted);font-family:'Poppins',sans-serif;
+    font-size:0.58rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:0.3px;
+    -webkit-tap-highlight-color:transparent;
+    position:relative;transition:color 0.15s;
+    text-decoration:none;
+  }
+  .mn-item.active{color:var(--saf);}
+  .mn-item .mn-icon{font-size:1.25rem;line-height:1.1;}
+  .mn-badge{
+    position:absolute;top:4px;right:calc(50% - 16px);
+    background:var(--saf);color:#fff;
+    font-size:0.5rem;font-weight:700;
+    min-width:14px;height:14px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    padding:0 3px;
+  }
+  .more-overlay{
+    position:fixed;bottom:62px;left:0;right:0;z-index:499;
+    background:#fff;border-top:1px solid var(--border);
+    box-shadow:0 -4px 24px rgba(0,0,0,0.14);
+    padding:0.75rem;
+    display:none;border-radius:12px 12px 0 0;
+  }
+  .more-overlay.open{display:block;}
+  .more-grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;
+  }
+  .more-item{
+    display:flex;flex-direction:column;align-items:center;
+    gap:4px;padding:0.6rem 0.25rem;
+    background:var(--cream);border-radius:10px;
+    cursor:pointer;border:none;font-family:'Poppins',sans-serif;
+    -webkit-tap-highlight-color:transparent;
+    color:var(--text);text-decoration:none;
+  }
+  .more-item.active{background:var(--saf-l);color:var(--saf);}
+  .more-item .mi-icon{font-size:1.3rem;}
+  .more-item .mi-label{font-size:0.6rem;font-weight:600;text-align:center;color:inherit;}
+  .more-item.danger .mi-label{color:#c0392b;}
 }
 </style>
 </head>
@@ -600,6 +670,7 @@ function renderDashboard() {
   document.getElementById('sb-prod-count').textContent = products.length;
   document.getElementById('sb-order-badge').textContent = pending;
   document.getElementById('sb-fb-badge').textContent = DB.getFeedback().filter(f=>!f.approved).length;
+  updateMobileBadges();
 }
 
 // ── PRODUCTS ──
@@ -950,6 +1021,72 @@ function showToast(msg){
 // ── INIT ──
 renderDashboard();
 
+
+// ═══ MOBILE NAVIGATION ═══
+function mobileNav(pageId, btnEl) {
+  // Show the page using existing showPage logic
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('show'));
+  document.getElementById('page-' + pageId).classList.add('show');
+
+  // Update desktop sidebar active state too
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  const sidebarMatch = document.querySelector(`.sb-item[onclick*="${pageId}"]`);
+  if (sidebarMatch) sidebarMatch.classList.add('active');
+
+  // Update mobile nav active state
+  document.querySelectorAll('.mn-item').forEach(b => b.classList.remove('active'));
+  // Handle main 4 buttons
+  const mainBtn = document.getElementById('mn-' + pageId);
+  if (mainBtn) mainBtn.classList.add('active');
+  else document.getElementById('mn-more').classList.add('active');
+
+  // Refresh data for the page
+  const renders = {
+    dashboard: renderDashboard,
+    products: renderProducts,
+    inventory: renderInventory,
+    orders: renderOrders,
+    offers: renderOffers,
+    feedback: renderFeedback,
+    settings: loadSettings
+  };
+  if (renders[pageId]) renders[pageId]();
+}
+
+function toggleMoreMenu() {
+  const overlay = document.getElementById('more-overlay');
+  overlay.classList.toggle('open');
+}
+
+function closeMoreMenu() {
+  document.getElementById('more-overlay').classList.remove('open');
+}
+
+// Close more menu when tapping outside
+document.addEventListener('click', function(e) {
+  const overlay = document.getElementById('more-overlay');
+  const moreBtn = document.getElementById('mn-more');
+  if (overlay && overlay.classList.contains('open') && 
+      !overlay.contains(e.target) && e.target !== moreBtn && !moreBtn.contains(e.target)) {
+    closeMoreMenu();
+  }
+});
+
+// Update mobile badge for pending orders
+function updateMobileBadges() {
+  const orders = DB.getOrders();
+  const pending = orders.filter(o => ['Placed','Packing','Out for Delivery'].includes(o.status)).length;
+  const badge = document.getElementById('mn-orders-badge');
+  if (badge) {
+    badge.style.display = pending > 0 ? 'flex' : 'none';
+    badge.textContent = pending > 9 ? '9+' : pending;
+  }
+  // Feedback badge
+  const fbPending = DB.getFeedback().filter(f => !f.approved).length;
+  const mmFb = document.getElementById('mm-feedback');
+  if (mmFb) mmFb.querySelector('.mi-label').textContent = fbPending > 0 ? `Feedback (${fbPending})` : 'Feedback';
+}
+
 function adminLogout() {
   if(confirm('Logout from Admin Panel?')) {
     sessionStorage.removeItem('aps_admin_session');
@@ -958,5 +1095,60 @@ function adminLogout() {
 }
 
 </script>
+
+<!-- ═══ MOBILE BOTTOM NAV ═══ -->
+<div class="mobile-nav" id="mobile-nav">
+  <button class="mn-item active" id="mn-dashboard" onclick="mobileNav('dashboard',this)">
+    <span class="mn-icon">📊</span>
+    <span class="mn-label">Home</span>
+  </button>
+  <button class="mn-item" id="mn-products" onclick="mobileNav('products',this)">
+    <span class="mn-icon">🛍️</span>
+    <span class="mn-label">Products</span>
+  </button>
+  <button class="mn-item" id="mn-inventory" onclick="mobileNav('inventory',this)">
+    <span class="mn-icon">📦</span>
+    <span class="mn-label">Stock</span>
+  </button>
+  <button class="mn-item" id="mn-orders" onclick="mobileNav('orders',this)">
+    <span class="mn-icon">📋</span>
+    <span class="mn-label">Orders</span>
+    <span class="mn-badge" id="mn-orders-badge" style="display:none">0</span>
+  </button>
+  <button class="mn-item" id="mn-more" onclick="toggleMoreMenu()">
+    <span class="mn-icon">☰</span>
+    <span class="mn-label">More</span>
+  </button>
+</div>
+
+<!-- MORE MENU (slides up) -->
+<div class="more-overlay" id="more-overlay">
+  <div class="more-grid">
+    <button class="more-item" id="mm-offers" onclick="mobileNav('offers',null);closeMoreMenu()">
+      <span class="mi-icon">🎉</span>
+      <span class="mi-label">Festival Offers</span>
+    </button>
+    <button class="more-item" id="mm-feedback" onclick="mobileNav('feedback',null);closeMoreMenu()">
+      <span class="mi-icon">⭐</span>
+      <span class="mi-label">Feedback</span>
+    </button>
+    <button class="more-item" id="mm-settings" onclick="mobileNav('settings',null);closeMoreMenu()">
+      <span class="mi-icon">🔧</span>
+      <span class="mi-label">Settings</span>
+    </button>
+    <button class="more-item" id="mm-setup" onclick="mobileNav('setup',null);closeMoreMenu()">
+      <span class="mi-icon">📖</span>
+      <span class="mi-label">Setup Guide</span>
+    </button>
+    <a class="more-item" href="index.html" target="_blank" onclick="closeMoreMenu()">
+      <span class="mi-icon">🏪</span>
+      <span class="mi-label">View Store</span>
+    </a>
+    <button class="more-item" onclick="adminLogout();closeMoreMenu()">
+      <span class="mi-icon">🔓</span>
+      <span class="mi-label" style="color:#c0392b">Logout</span>
+    </button>
+  </div>
+</div>
 </body>
 </html>
