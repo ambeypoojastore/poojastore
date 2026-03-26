@@ -274,7 +274,7 @@ body{
     </div>
     <div class="err-msg" id="err-login"></div>
     <span class="hint-link" onclick="showScreen('screen-forgot')">Forgot PIN?</span>
-    <span class="hint-link" onclick="showScreen('screen-setup')" id="first-time-link" style="display:none;">First time? Set up your PIN →</span>
+    <!-- First-time setup is only accessible via Forgot PIN flow after secret word verification -->
   </div>
 
   <!-- ── SCREEN 2: SETUP PIN (first time / reset) ── -->
@@ -309,7 +309,7 @@ body{
   <!-- ── SCREEN 3: FORGOT PIN ── -->
   <div class="screen" id="screen-forgot">
     <div class="forgot-wrap">
-      <p>Enter the secret recovery word given to you by your store administrator to reset your PIN.</p>
+      <p>Enter the secret admin word to set up or reset your PIN. Only authorised admins know this word.</p>
       <input class="secret-input" type="password" id="secret-input" placeholder="Recovery word" autocomplete="off"/>
       <button class="btn-full" onclick="verifySecret()">Verify & Reset PIN</button>
     </div>
@@ -360,16 +360,30 @@ function init() {
     return;
   }
 
-  // No PIN set yet → show setup prompt
+  // No PIN set yet → guide to Forgot PIN flow (requires secret word verification)
   if (!localStorage.getItem(STORAGE_KEY)) {
-    document.getElementById('first-time-link').style.display = 'block';
-    document.getElementById('err-login').textContent = 'First time? Set up your PIN below ↓';
+    document.getElementById('err-login').textContent = 'No PIN configured. Use "Forgot PIN?" with the admin secret word to set up access.';
+    document.getElementById('err-login').style.color = 'rgba(212,168,39,0.75)';
+    return;
+  }
+  // legacy placeholder to avoid breaking the if block — original code continued here:
+  if (false && !localStorage.getItem(STORAGE_KEY)) {
+    document.getElementById('err-login').textContent = 'No PIN configured. Use "Forgot PIN?" to set up access.';
     document.getElementById('err-login').style.color = 'rgba(212,168,39,0.7)';
   }
 }
 
 // ── SCREEN SWITCHER ──
+let setupAuthorized = false; // Must verify secret word before accessing setup screen
+
 function showScreen(id) {
+  // Security: block direct navigation to setup screen without secret word
+  if (id === 'screen-setup' && !setupAuthorized) {
+    id = 'screen-forgot';
+    setTimeout(() => {
+      document.getElementById('err-forgot').textContent = 'Verify the admin secret word to set up a PIN.';
+    }, 50);
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   loginBuf = ''; setupBuf = ''; setupStep = 0; setupFirst = '';
@@ -472,10 +486,10 @@ function submitPin(mode) {
         document.getElementById('err-setup').textContent = '';
         document.getElementById('err-setup').style.color = '#5DCAA5';
         document.getElementById('err-setup').textContent = '✅ PIN saved successfully!';
+        setupAuthorized = false; // revoke setup access — one-time use only
         setTimeout(() => {
           showScreen('screen-login');
-          document.getElementById('first-time-link').style.display = 'none';
-          document.getElementById('err-login').textContent = '✅ PIN set! You can now login.';
+          document.getElementById('err-login').textContent = '✅ PIN created! You can now login.';
           document.getElementById('err-login').style.color = '#5DCAA5';
         }, 900);
       } else {
@@ -496,22 +510,28 @@ function resetSetupUI(step=0) {
   const sdots = document.querySelectorAll('.step-dot');
   sdots.forEach((d,i) => { d.classList.toggle('active', i===step); d.classList.toggle('done', i<step); });
   document.getElementById('setup-label').textContent =
-    step === 0 ? 'Create your 4-digit PIN' : 'Confirm your PIN';
+    step === 0 ? (localStorage.getItem(STORAGE_KEY) ? 'Create your new 4-digit PIN' : 'Create your admin PIN') : 'Confirm your PIN';
   if (step === 0) document.getElementById('err-setup').textContent = '';
 }
 
 // ── FORGOT PIN ──
 function verifySecret() {
   const val = document.getElementById('secret-input').value.trim().toLowerCase();
+  document.getElementById('secret-input').value = '';
   if (val === SECRET_WORD) {
+    setupAuthorized = true; // Grant access to PIN setup screen
     localStorage.removeItem(STORAGE_KEY);
-    document.getElementById('secret-input').value = '';
-    showScreen('screen-setup');
+    // Now showScreen('screen-setup') will work because setupAuthorized is true
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-setup').classList.add('active');
+    setupBuf = ''; setupStep = 0; setupFirst = '';
+    updateDotsSetup(0);
+    document.getElementById('err-forgot').textContent = '';
+    resetSetupUI(0);
     document.getElementById('err-setup').style.color = 'rgba(212,168,39,0.7)';
-    document.getElementById('err-setup').textContent = '✓ Verified! Create your new PIN.';
+    document.getElementById('err-setup').textContent = '✓ Verified! Create your admin PIN.';
   } else {
-    document.getElementById('err-forgot').textContent = 'Incorrect recovery word. Try again.';
-    document.getElementById('secret-input').value = '';
+    document.getElementById('err-forgot').textContent = 'Incorrect secret word. Try again.';
   }
 }
 
