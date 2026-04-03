@@ -1004,7 +1004,7 @@ function renderImgPreviews() {
     </div>`).join('');
 }
 
-function saveProduct() {
+async function saveProduct() {
   const name=document.getElementById('pm-name').value.trim();
   const price=+document.getElementById('pm-price').value;
   const stock=+document.getElementById('pm-stock').value;
@@ -1030,15 +1030,83 @@ function saveProduct() {
     images:uploadedImages,
   };
 
-  if(editingProductId){ DB.updateProduct(editingProductId,data); showToast('✅ Product updated!'); }
-  else { DB.addProduct(data); showToast('✅ Product added to store!'); }
+  // Show saving indicator
+  showToast('💾 Saving to cloud...');
+
+  const sheetsUrl = DB.getSettings().sheetsUrl || '';
+  const hasSheets = sheetsUrl && sheetsUrl.startsWith('https://script.google.com');
+
+  if (editingProductId) {
+    if (hasSheets) {
+      try {
+        const resp = await fetch(sheetsUrl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'updateProduct', id:editingProductId, updates:data })
+        });
+        const result = await resp.json();
+        if (result.success) showToast('✅ Product updated in cloud!');
+        else throw new Error('Failed');
+      } catch(err) {
+        // fallback to localStorage
+        DB.updateProduct(editingProductId, data);
+        showToast('✅ Product updated (local only — check Sheets URL in Settings)');
+      }
+    } else {
+      DB.updateProduct(editingProductId, data);
+      showToast('✅ Product updated (local only — add Sheets URL in Settings)');
+    }
+  } else {
+    // New product — assign ID first
+    data.id = 'PRD-' + Date.now();
+    data.createdAt = new Date().toISOString();
+    data.sold = 0;
+
+    if (hasSheets) {
+      try {
+        const resp = await fetch(sheetsUrl, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ action:'saveProduct', product:data })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          // Also save to local cache so it shows immediately
+          const list = DB.getProducts();
+          list.unshift(data);
+          DB.saveProducts(list);
+          showToast('✅ Product saved to Google Sheets!');
+        } else throw new Error('Failed');
+      } catch(err) {
+        // fallback to localStorage
+        DB.addProduct(data);
+        showToast('⚠️ Saved locally only — check Sheets URL in Settings');
+      }
+    } else {
+      DB.addProduct(data);
+      showToast('⚠️ Saved locally only — add Sheets URL in Settings to sync everywhere');
+    }
+  }
 
   closeProductModal();
+  // Force refresh from Sheets
+  localStorage.setItem('aps_products_cache_ts', '0');
   renderProducts();
 }
 
-function deleteProduct(id) {
+async async function deleteProduct(id) {
   if(!confirm('Delete this product permanently?')) return;
+  const sheetsUrl = DB.getSettings().sheetsUrl || '';
+  const hasSheets = sheetsUrl && sheetsUrl.startsWith('https://script.google.com');
+  if (hasSheets) {
+    try {
+      await fetch(sheetsUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'deleteProduct', id })
+      });
+    } catch(e) {}
+  }
   DB.deleteProduct(id);
   renderProducts();
   showToast('🗑️ Product deleted');
