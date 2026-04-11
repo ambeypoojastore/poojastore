@@ -3,148 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ambey Pooja Store - Admin Panel</title>
+    <title>Ambey Pooja Store - Admin Login</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B3A3A 0%, #6B2A2A 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 20px;
         }
-        .container {
+
+        .login-container {
             background: white;
             padding: 40px;
             border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
         }
-        h1 {
+
+        .login-header {
             text-align: center;
-            color: #333;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
+
+        .login-header h1 {
+            color: #8B3A3A;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #999;
+            font-size: 14px;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 8px;
             color: #555;
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 14px;
         }
-        input[type="text"],
-        input[type="password"],
-        input[type="email"] {
+
+        input {
             width: 100%;
             padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
         }
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus {
+
+        input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 5px rgba(102,126,234,0.3);
+            border-color: #8B3A3A;
+            box-shadow: 0 0 0 3px rgba(139, 58, 58, 0.1);
+            background: #fafafa;
         }
-        button {
+
+        .login-btn {
             width: 100%;
             padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #8B3A3A 0%, #6B2A2A 100%);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: all 0.3s ease;
+            font-family: inherit;
         }
-        button:hover {
-            transform: translateY(-2px);
+
+        .login-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(139, 58, 58, 0.3);
         }
-        button:active {
-            transform: translateY(0);
-        }
-        .message {
+
+        .alert {
             padding: 12px;
-            margin-top: 20px;
-            border-radius: 5px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border-left: 4px solid;
             display: none;
+            animation: slideDown 0.3s ease;
         }
-        .message.success {
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
             background: #d4edda;
             color: #155724;
-            border: 1px solid #c3e6cb;
+            border-color: #28a745;
         }
-        .message.error {
+
+        .alert-error {
             background: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb;
+            border-color: #f5c6cb;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🔐 Admin Login</h1>
-        <form id="loginForm">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🙏 Ambey Pooja Store</h1>
+            <p>Admin Panel</p>
+        </div>
+
+        <div id="alert" class="alert"></div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" required>
+                <input type="text" id="username" required placeholder="admin">
             </div>
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" required>
+                <input type="password" id="password" required placeholder="••••••••">
             </div>
-            <button type="submit">Login</button>
-            <div id="message" class="message"></div>
+            <button type="submit" class="login-btn" id="submitBtn">Login</button>
         </form>
     </div>
 
     <script>
-        // REPLACE WITH YOUR NEW DEPLOYMENT URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/d/YOUR_DEPLOYMENT_ID/useweb';
-        
-        // Simple credentials (use environment variables in production!)
+        // Hardcoded credentials (change these!)
         const ADMIN_USERNAME = 'admin';
-        const ADMIN_PASSWORD = 'ambey@2024'; // Change this!
+        const ADMIN_PASSWORD = 'ambey@2024';
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
+        function handleLogin(event) {
+            event.preventDefault();
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                // Store session
-                localStorage.setItem('adminSession', JSON.stringify({
-                    username: username,
-                    loginTime: new Date(),
-                    token: Math.random().toString(36).substr(2, 9)
-                }));
-                
-                showMessage('Login successful! Redirecting...', 'success');
-                setTimeout(() => {
-                    window.location.href = 'admin-dashboard.html';
-                }, 1500);
-            } else {
-                showMessage('Invalid username or password', 'error');
-            }
-        });
+            const submitBtn = document.getElementById('submitBtn');
+            const alertDiv = document.getElementById('alert');
 
-        function showMessage(msg, type) {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = msg;
-            messageDiv.className = 'message ' + type;
-            messageDiv.style.display = 'block';
+            // Show loading
+            submitBtn.innerHTML = '<span class="loading"></span>Logging in...';
+            submitBtn.disabled = true;
+
+            setTimeout(() => {
+                if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                    // Save session
+                    localStorage.setItem('adminSession', JSON.stringify({
+                        username: username,
+                        loginTime: new Date(),
+                        token: Math.random().toString(36).substr(2, 9)
+                    }));
+
+                    // Show success
+                    alertDiv.textContent = 'Login successful! Redirecting...';
+                    alertDiv.className = 'alert alert-success';
+                    alertDiv.style.display = 'block';
+
+                    setTimeout(() => {
+                        window.location.href = 'admin-dashboard.html';
+                    }, 1500);
+                } else {
+                    // Show error
+                    alertDiv.textContent = 'Invalid username or password';
+                    alertDiv.className = 'alert alert-error';
+                    alertDiv.style.display = 'block';
+
+                    submitBtn.textContent = 'Login';
+                    submitBtn.disabled = false;
+                }
+            }, 500);
         }
     </script>
 </body>
